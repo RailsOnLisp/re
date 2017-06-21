@@ -43,43 +43,43 @@
 ;;  so (USE-PACKAGE #:RE) makes sense.
 
 (defun re (re &key
-		case-insensitive-mode
-		multi-line-mode
-		single-line-mode
-		extended-mode
-		destructive)
+                case-insensitive-mode
+                multi-line-mode
+                single-line-mode
+                extended-mode
+                destructive)
   (cl-ppcre:create-scanner re
-			   :case-insensitive-mode case-insensitive-mode
-			   :multi-line-mode multi-line-mode
-			   :single-line-mode single-line-mode
-			   :extended-mode extended-mode
-			   :destructive destructive))
+                           :case-insensitive-mode case-insensitive-mode
+                           :multi-line-mode multi-line-mode
+                           :single-line-mode single-line-mode
+                           :extended-mode extended-mode
+                           :destructive destructive))
 
 (defun re-match (re string &key
-			     (start 0)
-			     (end (length string))
-			     real-start-pos)
+                             (start 0)
+                             (end (length string))
+                             real-start-pos)
   (cl-ppcre:scan re string
-		 :start start
-		 :end end
-		 :real-start-pos real-start-pos))
+                 :start start
+                 :end end
+                 :real-start-pos real-start-pos))
 
 (defun re-matches (re string &key
-			     (start 0)
-			     (end (length string))
-			     sharedp)
+                             (start 0)
+                             (end (length string))
+                             sharedp)
   (cl-ppcre:all-matches-as-strings re string
-		 :start start
-		 :end end
-		 :sharedp sharedp))
+                 :start start
+                 :end end
+                 :sharedp sharedp))
 
 (defmacro do-re-matches (re (var) string &body body)
   (let ((n (gensym "N-")))
     `(let ((,n 0))
        (cl-ppcre:do-matches-as-strings (,var ,re ,string (when (< 0 ,n)
-							   ,n))
-	 (incf ,n)
-	 ,@body))))
+                                                           ,n))
+         (incf ,n)
+         ,@body))))
 
 (defmacro re-bind (re var-list string &body body)
   `(cl-ppcre:register-groups-bind ,var-list (,re ,string)
@@ -105,21 +105,21 @@
                   :sharedp shared))
 
 (defun re-subst (re subst string &key
-				   (start 0)
-				   (end (length string))
-				   preserve-case
-				   (element-type 'character))
+                                   (start 0)
+                                   (end (length string))
+                                   preserve-case
+                                   (element-type 'character))
   (cl-ppcre:regex-replace-all re string subst
-			      :start start
-			      :end end
-			      :preserve-case preserve-case
-			      :element-type element-type))
+                              :start start
+                              :end end
+                              :preserve-case preserve-case
+                              :element-type element-type))
 
 (defun re-subst* (string &rest re-subst*)
   (if (endp re-subst*)
       string
       (destructuring-bind (re subst &rest rest) re-subst*
-	(apply #'re-subst* (re-subst re subst string) rest))))
+        (apply #'re-subst* (re-subst re subst string) rest))))
 
 ;;  Quoting
 
@@ -137,8 +137,8 @@
      (re-subst ,re ,subst str)))
 
 (defvar *re-modes* '((nil identity 1)
-		     (#\m re-mode-match 1)
-		     (#\s re-mode-subst 2)))
+                     (#\m re-mode-match 1)
+                     (#\s re-mode-subst 2)))
 
 (defun read-delimited-parts (count delimiter stream)
   "Reads COUNT strings separated by a DELIMITER character, from STREAM.
@@ -146,21 +146,21 @@ The delimiter and '\' can be escaped with '\'.
 Other characters will not be escaped and '\' will be part of the string."
   (loop repeat count
         collect (with-output-to-string (out)
-		  (loop for c = (read-char stream)
-		        until (char= c delimiter)
-		     do (write-char (if (and (char= #\\ c)
-					     (let ((p (peek-char nil stream)))
-					       (or (char= delimiter p)
-						   (char= #\\ p))))
-					(read-char stream)
-					c)
-				    out)))))
+                  (loop for c = (read-char stream)
+                        until (char= c delimiter)
+                     do (write-char (if (and (char= #\\ c)
+                                             (let ((p (peek-char nil stream)))
+                                               (or (char= delimiter p)
+                                                   (char= #\\ p))))
+                                        (read-char stream)
+                                        c)
+                                    out)))))
 
 (defun read-re (stream &optional char n)
   (declare (ignore char n))
   (let* ((char (read-char stream))
-	 (mode (assoc char *re-modes*))
-	 (delimiter (if mode (read-char stream) char)))
+         (mode (assoc char *re-modes*))
+         (delimiter (if mode (read-char stream) char)))
     (destructuring-bind (fun count) (cdr (or mode (assoc nil *re-modes*)))
       (apply fun (read-delimited-parts count delimiter stream)))))
 
@@ -169,15 +169,15 @@ Other characters will not be escaped and '\' will be part of the string."
 (defun re-readtable (&key merge (char #\#) (subchar #\~))
   (let ((rt (copy-readtable merge)))
     (if subchar
-	(set-dispatch-macro-character char subchar 'read-re rt)
-	(set-macro-character char 'read-re nil rt))
+        (set-dispatch-macro-character char subchar 'read-re rt)
+        (set-macro-character char 'read-re nil rt))
     rt))
 
 (defmacro in-re-readtable (&key merge (char #\#) (subchar #\~))
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (setq *readtable* (re-readtable :merge ,merge
-				     :char ,char
-				     :subchar ,subchar))))
+                                     :char ,char
+                                     :subchar ,subchar))))
 
 (defmacro enable-re-syntax (&optional (char #\#) (subchar #\~))
   `(eval-when (:compile-toplevel :load-toplevel :execute)
